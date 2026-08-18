@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FMU · Cadastro de Calouros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fmu-red:#E30613;
+    --fmu-red-dark:#A8040D;
+    --ink:#191414;
+    --ink-soft:#5c5652;
+    --paper:#FAF7F5;
+    --card:#FFFFFF;
+    --line:#EAE2DF;
+    --tint:#FFEDEC;
+    --ok:#2D7A4B;
+    --ok-tint:#E7F5EC;
+    --warn:#B8560F;
+    --warn-tint:#FDF0E4;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(25,20,20,.04), 0 8px 24px rgba(25,20,20,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .topbar{
+    background:var(--fmu-red);
+    color:#fff;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand-mark{
+    font-family:'Archivo Black',sans-serif;
+    font-size:22px;
+    line-height:1;
+    letter-spacing:0.5px;
+    background:#fff;
+    color:var(--fmu-red);
+    padding:6px 9px;
+    border-radius:8px;
+  }
+  .brand-text{
+    display:flex;
+    flex-direction:column;
+    line-height:1.15;
+  }
+  .brand-text b{
+    font-size:14px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .brand-text span{
+    font-size:11px;
+    opacity:0.85;
+    letter-spacing:0.04em;
+  }
+  .nav-toggle{
+    display:flex;
+    background:rgba(255,255,255,.16);
+    border-radius:999px;
+    padding:3px;
+    gap:2px;
+  }
+  .nav-toggle button{
+    border:none;
+    background:transparent;
+    color:#fff;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
+    padding:8px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .2s ease;
+    white-space:nowrap;
+  }
+  .nav-toggle button.active{
+    background:#fff;
+    color:var(--fmu-red);
+  }
+  main{
+    max-width:880px;
+    margin:0 auto;
+    padding:36px 20px 80px;
+  }
+  .hero{
+    margin-bottom:32px;
+  }
+  .eyebrow{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--fmu-red);
+    margin:0 0 8px;
+  }
+  h1{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(28px,4.5vw,42px);
+    line-height:1.05;
+    margin:0 0 12px;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    color:var(--ink-soft);
+    font-size:16px;
+    line-height:1.55;
+    max-width:56ch;
+    margin:0;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+
+  /* ---- STEP PATH (signature element) ---- */
+  .path{
+    display:flex;
+    counter-reset:step;
+    margin:32px 0 28px;
+    border-radius:var(--radius);
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .path-step{
+    flex:1;
+    background:var(--card);
+    padding:14px 16px;
+    position:relative;
+    counter-increment:step;
+  }
+  .path-step:not(:last-child){border-right:1px solid var(--line);}
+  .path-step.done{background:var(--tint);}
+  .path-step::before{
+    content:counter(step);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:22px;height:22px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    margin-right:8px;
+  }
+  .path-step.done::before{
+    background:var(--fmu-red);
+    content:"✓";
+  }
+  .path-step .plabel{
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .path-step.done .plabel{color:var(--ink);}
+
+  /* ---- FORM ---- */
+  form{
+    padding:28px 28px 32px;
+  }
+  .field{
+    margin-bottom:20px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:7px;
+    color:var(--ink);
+  }
+  .hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:5px;
+  }
+  input[type=text],input[type=number],select,textarea{
+    width:100%;
+    font-family:inherit;
+    font-size:15px;
+    padding:12px 14px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    color:var(--ink);
+    transition:border-color .15s ease;
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:none;
+    border-color:var(--fmu-red);
+  }
+  textarea{resize:vertical;min-height:90px;}
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:520px){.row2{grid-template-columns:1fr;}}
+
+  .radio-group{
+    display:flex;
+    gap:10px;
+  }
+  .radio-pill{
+    flex:1;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    text-align:center;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink-soft);
+    transition:all .15s ease;
+    user-select:none;
+  }
+  .radio-pill input{display:none;}
+  .radio-pill.selected{
+    border-color:var(--fmu-red);
+    background:var(--tint);
+    color:var(--fmu-red-dark);
+  }
+  #restrictionDetail{display:none;margin-top:14px;}
+  #restrictionDetail.show{display:block;}
+
+  .submit-btn{
+    width:100%;
+    background:var(--fmu-red);
+    color:#fff;
+    border:none;
+    padding:15px;
+    border-radius:10px;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    margin-top:8px;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .submit-btn:hover{background:var(--fmu-red-dark);}
+  .submit-btn:active{transform:scale(0.99);}
+  .submit-btn:disabled{opacity:.6;cursor:not-allowed;}
+
+  .success{
+    text-align:center;
+    padding:56px 28px;
+  }
+  .success .mark{
+    width:56px;height:56px;
+    border-radius:50%;
+    background:var(--ok-tint);
+    color:var(--ok);
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;
+    margin:0 auto 18px;
+  }
+  .success h2{
+    font-family:'Archivo Black',sans-serif;
+    font-size:22px;
+    margin:0 0 8px;
+  }
+  .success p{color:var(--ink-soft);margin:0 0 24px;}
+  .ghost-btn{
+    background:transparent;
+    border:1.5px solid var(--line);
+    color:var(--ink);
+    padding:11px 20px;
+    border-radius:10px;
+    font-family:inherit;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .ghost-btn:hover{border-color:var(--fmu-red);color:var(--fmu-red);}
+
+  /* ---- ADMIN LOGIN ---- */
+  .login-wrap{
+    max-width:380px;
+    margin:60px auto 0;
+    padding:32px 28px;
+    text-align:center;
+  }
+  .login-wrap .lock{
+    width:48px;height:48px;
+    border-radius:12px;
+    background:var(--tint);
+    color:var(--fmu-red);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+    margin:0 auto 16px;
+  }
+  .login-wrap h2{
+    font-family:'Archivo Black',sans-serif;
+    font-size:19px;
+    margin:0 0 6px;
+  }
+  .login-wrap p{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px;}
+  .login-wrap input{margin-bottom:12px;}
+  .err-msg{
+    color:var(--fmu-red-dark);
+    font-size:13px;
+    font-weight:600;
+    margin-top:-4px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .err-msg.show{display:block;}
+
+  /* ---- ADMIN DASHBOARD ---- */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:24px;
+  }
+  @media (max-width:560px){.stats{grid-template-columns:1fr;}}
+  .stat{
+    padding:18px 20px;
+  }
+  .stat .num{
+    font-family:'Archivo Black',sans-serif;
+    font-size:30px;
+    line-height:1;
+    color:var(--fmu-red);
+  }
+  .stat .lbl{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    font-weight:600;
+  }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .toolbar input[type=text]{flex:1;min-width:180px;}
+  .filter-chip{
+    border:1.5px solid var(--line);
+    background:#fff;
+    padding:9px 14px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .filter-chip.active{
+    border-color:var(--fmu-red);
+    background:var(--tint);
+    color:var(--fmu-red-dark);
+  }
+  .roster{overflow-x:auto;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    font-weight:700;
+    padding:14px 16px;
+    border-bottom:1.5px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FCFAF9;}
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:12px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:999px;
+  }
+  .badge.warn{background:var(--warn-tint);color:var(--warn);}
+  .badge.ok{background:var(--ok-tint);color:var(--ok);}
+  .detail-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    max-width:220px;
+    margin-top:4px;
+  }
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+  .empty-state .big{font-size:32px;margin-bottom:10px;}
+  .del-btn{
+    background:transparent;
+    border:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+    font-size:13px;
+    padding:4px 8px;
+    border-radius:6px;
+  }
+  .del-btn:hover{color:var(--fmu-red);background:var(--tint);}
+  .logout-btn{
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,.5);
+    color:#fff;
+    padding:7px 14px;
+    border-radius:999px;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .logout-btn:hover{background:rgba(255,255,255,.15);}
+  .loading{
+    text-align:center;
+    padding:40px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">FMU</div>
+    <div class="brand-text">
+      <b>Centro Universitário</b>
+      <span>Recepção de calouros</span>
+    </div>
+  </div>
+  <div class="nav-toggle" id="navToggle">
+    <button id="navStudent" class="active">Sou aluno</button>
+    <button id="navAdmin">Administração</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- ============ STUDENT VIEW ============ -->
+  <div id="studentView">
+    <div class="hero">
+      <p class="eyebrow">Atividade de integração · 1º semestre</p>
+      <h1>Bem-vindo(a) à FMU.</h1>
+      <p class="lede">Preencha seus dados para participar da atividade com a turma. Levamos cerca de 2 minutos, e as informações servem só para organizar a dinâmica com segurança para todos.</p>
+    </div>
+
+    <div class="card" id="formCard">
+      <form id="studentForm">
+        <div class="field">
+          <label for="fName">Nome completo</label>
+          <input type="text" id="fName" placeholder="Como você gosta de ser chamado(a)" required>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="fAge">Idade</label>
+            <input type="number" id="fAge" min="14" max="99" placeholder="Ex: 19" required>
+          </div>
+          <div class="field">
+            <label for="fSemester">Semestre</label>
+            <select id="fSemester" required>
+              <option value="" disabled selected>Selecione</option>
+              <option>1º semestre</option>
+              <option>2º semestre</option>
+              <option>3º semestre</option>
+              <option>4º semestre</option>
+              <option>5º semestre ou mais</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="fCourse">Curso</label>
+          <input type="text" id="fCourse" placeholder="Ex: Direito, Odontologia, ADS..." required>
+        </div>
+
+        <div class="field">
+          <label>Você possui alguma restrição médica ou física que devemos saber para a atividade?</label>
+          <div class="radio-group" id="restrictionGroup">
+            <label class="radio-pill" data-val="nao"><input type="radio" name="restriction" value="nao">Não tenho</label>
+            <label class="radio-pill" data-val="sim"><input type="radio" name="restriction" value="sim">Sim, tenho</label>
+          </div>
+          <div id="restrictionDetail" class="field" style="margin-bottom:0;">
+            <label for="fRestrictionDetail">Conte um pouco mais (ex: mobilidade, alergias, condição cardíaca, etc.)</label>
+            <textarea id="fRestrictionDetail" placeholder="Isso nos ajuda a adaptar a atividade para você com segurança."></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Confirmar inscrição</button>
+      </form>
+
+      <div class="success" id="successPanel" style="display:none;">
+        <div class="mark">✓</div>
+        <h2>Inscrição confirmada!</h2>
+        <p>Seus dados foram registrados. Nos vemos na atividade — até já!</p>
+        <button class="ghost-btn" id="newRegistration">Cadastrar outra pessoa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN LOGIN ============ -->
+  <div id="adminLoginView" style="display:none;">
+    <div class="card login-wrap">
+      <div class="lock">🔒</div>
+      <h2>Painel administrativo</h2>
+      <p>Acesso restrito à equipe organizadora da atividade.</p>
+      <input type="password" id="adminPass" placeholder="Senha" style="margin-bottom:0;">
+      <p class="err-msg" id="loginErr">Senha incorreta.</p>
+      <button class="submit-btn" id="loginBtn" style="margin-top:16px;">Entrar</button>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN DASHBOARD ============ -->
+  <div id="adminDashView" style="display:none;">
+    <div class="hero" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <p class="eyebrow">Painel administrativo</p>
+        <h1 style="font-size:clamp(24px,4vw,32px);">Alunos cadastrados</h1>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="card stat">
+        <div class="num" id="statTotal">0</div>
+        <div class="lbl">Total de inscritos</div>
+      </div>
+      <div class="card stat">
+        <div class="num" id="statRestriction">0</div>
+        <div class="lbl">Com restrição médica/física</div>
+      </div>
+      <div class="card stat">
+        <div class="num" id="statAvgAge">–</div>
+        <div class="lbl">Idade média</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="Buscar por nome ou curso...">
+      <button class="filter-chip active" data-filter="all">Todos</button>
+      <button class="filter-chip" data-filter="restriction">Com restrição</button>
+      <button class="filter-chip" id="exportCsvBtn">⭳ Exportar CSV</button>
+      <button class="filter-chip" id="exportJsonBtn">⭳ Backup JSON</button>
+    </div>
+    <p class="hint" id="backupHint" style="margin:-6px 0 16px;"></p>
+
+    <div class="card roster">
+      <div id="rosterLoading" class="loading">Carregando dados...</div>
+      <div id="rosterEmpty" class="empty-state" style="display:none;">
+        <div class="big">🗂️</div>
+        <p>Nenhum aluno cadastrado ainda.</p>
+      </div>
+      <table id="rosterTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Idade</th>
+            <th>Curso</th>
+            <th>Semestre</th>
+            <th>Restrição</th>
+            <th>Cadastro</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rosterBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function(){
+  const navStudent = document.getElementById('navStudent');
+  const navAdmin = document.getElementById('navAdmin');
+  const studentView = document.getElementById('studentView');
+  const adminLoginView = document.getElementById('adminLoginView');
+  const adminDashView = document.getElementById('adminDashView');
+
+  let adminLoggedIn = false;
+
+  function showStudent(){
+    navStudent.classList.add('active');
+    navAdmin.classList.remove('active');
+    studentView.style.display = '';
+    adminLoginView.style.display = 'none';
+    adminDashView.style.display = 'none';
+  }
+  function showAdmin(){
+    navAdmin.classList.add('active');
+    navStudent.classList.remove('active');
+    studentView.style.display = 'none';
+    if(adminLoggedIn){
+      adminLoginView.style.display = 'none';
+      adminDashView.style.display = '';
+      loadRoster();
+    } else {
+      adminLoginView.style.display = '';
+      adminDashView.style.display = 'none';
+    }
+  }
+  navStudent.addEventListener('click', showStudent);
+  navAdmin.addEventListener('click', showAdmin);
+
+  // ---------- STUDENT FORM ----------
+  const fName = document.getElementById('fName');
+  const fAge = document.getElementById('fAge');
+  const fSemester = document.getElementById('fSemester');
+  const fCourse = document.getElementById('fCourse');
+  const restrictionGroup = document.getElementById('restrictionGroup');
+  const restrictionDetail = document.getElementById('restrictionDetail');
+  const fRestrictionDetail = document.getElementById('fRestrictionDetail');
+  const studentForm = document.getElementById('studentForm');
+  const successPanel = document.getElementById('successPanel');
+  const submitBtn = document.getElementById('submitBtn');
+
+  let restrictionValue = null;
+
+  restrictionGroup.querySelectorAll('.radio-pill').forEach(pill=>{
+    pill.addEventListener('click', ()=>{
+      restrictionGroup.querySelectorAll('.radio-pill').forEach(p=>p.classList.remove('selected'));
+      pill.classList.add('selected');
+      pill.querySelector('input').checked = true;
+      restrictionValue = pill.dataset.val;
+      if(restrictionValue === 'sim'){
+        restrictionDetail.classList.add('show');
+      } else {
+        restrictionDetail.classList.remove('show');
+        fRestrictionDetail.value = '';
+      }
+    });
+  });
+
+  studentForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    if(!restrictionValue){
+      alert('Por favor, informe se você possui alguma restrição médica ou física.');
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    const entry = {
+      name: fName.value.trim(),
+      age: fAge.value.trim(),
+      course: fCourse.value.trim(),
+      semester: fSemester.value,
+      hasRestriction: restrictionValue === 'sim',
+      restrictionDetail: restrictionValue === 'sim' ? fRestrictionDetail.value.trim() : '',
+      createdAt: new Date().toISOString()
+    };
+
+    const key = 'student:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+
+    try{
+      const result = await window.storage.set(key, JSON.stringify(entry), true);
+      if(!result){
+        throw new Error('Falha ao salvar');
+      }
+      studentForm.style.display = 'none';
+      successPanel.style.display = '';
+    }catch(err){
+      console.error(err);
+      alert('Não foi possível enviar seu cadastro agora. Tente novamente em instantes.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmar inscrição';
+    }
+  });
+
+  document.getElementById('newRegistration').addEventListener('click', ()=>{
+    studentForm.reset();
+    restrictionValue = null;
+    restrictionGroup.querySelectorAll('.radio-pill').forEach(p=>p.classList.remove('selected'));
+    restrictionDetail.classList.remove('show');
+    successPanel.style.display = 'none';
+    studentForm.style.display = '';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Confirmar inscrição';
+  });
+
+  // ---------- ADMIN LOGIN ----------
+  const ADMIN_PASS = 'fmu2026';
+  const adminPass = document.getElementById('adminPass');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginErr = document.getElementById('loginErr');
+
+  function attemptLogin(){
+    if(adminPass.value === ADMIN_PASS){
+      adminLoggedIn = true;
+      loginErr.classList.remove('show');
+      adminLoginView.style.display = 'none';
+      adminDashView.style.display = '';
+      loadRoster();
+    } else {
+      loginErr.classList.add('show');
+    }
+  }
+  loginBtn.addEventListener('click', attemptLogin);
+  adminPass.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') attemptLogin(); });
+
+  // ---------- ADMIN DASHBOARD ----------
+  let allStudents = [];
+  let currentFilter = 'all';
+
+  async function loadRoster(){
+    const loadingEl = document.getElementById('rosterLoading');
+    const emptyEl = document.getElementById('rosterEmpty');
+    const tableEl = document.getElementById('rosterTable');
+    loadingEl.style.display = '';
+    emptyEl.style.display = 'none';
+    tableEl.style.display = 'none';
+
+    try{
+      const listResult = await window.storage.list('student:', true);
+      const keys = (listResult && listResult.keys) ? listResult.keys : [];
+      const students = [];
+      for(const k of keys){
+        try{
+          const r = await window.storage.get(k, true);
+          if(r && r.value){
+            const parsed = JSON.parse(r.value);
+            parsed._key = k;
+            students.push(parsed);
+          }
+        }catch(e){ /* skip unreadable entry */ }
+      }
+      students.sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+      allStudents = students;
+      renderRoster();
+    }catch(err){
+      console.error(err);
+      loadingEl.textContent = 'Não foi possível carregar os dados agora.';
+    }
+  }
+
+  function renderRoster(){
+    const loadingEl = document.getElementById('rosterLoading');
+    const emptyEl = document.getElementById('rosterEmpty');
+    const tableEl = document.getElementById('rosterTable');
+    const body = document.getElementById('rosterBody');
+    const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    loadingEl.style.display = 'none';
+
+    let list = allStudents;
+    if(currentFilter === 'restriction'){
+      list = list.filter(s=>s.hasRestriction);
+    }
+    if(searchTerm){
+      list = list.filter(s=>
+        (s.name||'').toLowerCase().includes(searchTerm) ||
+        (s.course||'').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // stats always from full set
+    document.getElementById('statTotal').textContent = allStudents.length;
+    document.getElementById('statRestriction').textContent = allStudents.filter(s=>s.hasRestriction).length;
+    const ages = allStudents.map(s=>parseInt(s.age)).filter(n=>!isNaN(n));
+    document.getElementById('statAvgAge').textContent = ages.length ? (ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1) : '–';
+
+    if(list.length === 0){
+      tableEl.style.display = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    tableEl.style.display = '';
+
+    body.innerHTML = list.map(s=>{
+      const dt = s.createdAt ? new Date(s.createdAt) : null;
+      const dtStr = dt ? dt.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '–';
+      const badge = s.hasRestriction
+        ? `<span class="badge warn">⚠ Sim</span>${s.restrictionDetail ? `<div class="detail-note">${escapeHtml(s.restrictionDetail)}</div>` : ''}`
+        : `<span class="badge ok">Não</span>`;
+      return `<tr>
+        <td>${escapeHtml(s.name||'—')}</td>
+        <td>${escapeHtml(s.age||'—')}</td>
+        <td>${escapeHtml(s.course||'—')}</td>
+        <td>${escapeHtml(s.semester||'—')}</td>
+        <td>${badge}</td>
+        <td>${dtStr}</td>
+        <td><button class="del-btn" data-key="${s._key}" title="Remover cadastro">Remover</button></td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('.del-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('Remover este cadastro?')) return;
+        try{
+          await window.storage.delete(btn.dataset.key, true);
+          allStudents = allStudents.filter(s=>s._key !== btn.dataset.key);
+          renderRoster();
+        }catch(e){
+          alert('Não foi possível remover agora.');
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // ---------- BACKUP / EXPORT ----------
+  function timestampForFile(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  function downloadBlob(content, filename, mime){
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvEscape(val){
+    const str = String(val ?? '');
+    if(/[",\n;]/.test(str)){
+      return '"' + str.replace(/"/g,'""') + '"';
+    }
+    return str;
+  }
+
+  async function recordBackupTimestamp(){
+    const now = new Date().toISOString();
+    try{
+      await window.storage.set('backup-log:last', now, true);
+    }catch(e){ /* non-critical */ }
+    const hintEl = document.getElementById('backupHint');
+    const dt = new Date(now);
+    hintEl.textContent = 'Último backup: ' + dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+    if(allStudents.length === 0){ alert('Não há dados para exportar ainda.'); return; }
+    const headers = ['Nome','Idade','Curso','Semestre','Possui restrição','Detalhes da restrição','Data de cadastro'];
+    const rows = allStudents.map(s => [
+      s.name, s.age, s.course, s.semester,
+      s.hasRestriction ? 'Sim' : 'Não',
+      s.restrictionDetail || '',
+      s.createdAt ? new Date(s.createdAt).toLocaleString('pt-BR') : ''
+    ].map(csvEscape).join(';'));
+    const csv = '\uFEFF' + headers.join(';') + '\n' + rows.join('\n');
+    downloadBlob(csv, `fmu-calouros-backup-${timestampForFile()}.csv`, 'text/csv;charset=utf-8;');
+    recordBackupTimestamp();
+  });
+
+  document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
+    if(allStudents.length === 0){ alert('Não há dados para exportar ainda.'); return; }
+    const cleaned = allStudents.map(({_key, ...rest}) => rest);
+    const json = JSON.stringify({ exportedAt: new Date().toISOString(), total: cleaned.length, students: cleaned }, null, 2);
+    downloadBlob(json, `fmu-calouros-backup-${timestampForFile()}.json`, 'application/json');
+    recordBackupTimestamp();
+  });
+
+  (async function loadLastBackupTime(){
+    try{
+      const r = await window.storage.get('backup-log:last', true);
+      if(r && r.value){
+        const dt = new Date(r.value);
+        document.getElementById('backupHint').textContent = 'Último backup: ' + dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      }
+    }catch(e){ /* no backup yet */ }
+  })();
+
+  document.getElementById('searchInput').addEventListener('input', renderRoster);
+  document.querySelectorAll('.filter-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      renderRoster();
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>
