@@ -450,6 +450,8 @@
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -604,6 +606,20 @@
 
 <script>
 (function(){
+  // ---------- FIREBASE ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyChsFxdyhJQKl1w9Jlb-xaIFGPcyjfvCLQ",
+    authDomain: "fmu-calouros.firebaseapp.com",
+    projectId: "fmu-calouros",
+    storageBucket: "fmu-calouros.firebasestorage.app",
+    messagingSenderId: "617785755234",
+    appId: "1:617785755234:web:8ec71ba3db79c0db55733b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const studentsCol = db.collection('students');
+  const metaCol = db.collection('meta');
+
   const navStudent = document.getElementById('navStudent');
   const navAdmin = document.getElementById('navAdmin');
   const studentView = document.getElementById('studentView');
@@ -683,13 +699,10 @@
       createdAt: new Date().toISOString()
     };
 
-    const key = 'student:' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    const key = 'student_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
     try{
-      const result = await window.storage.set(key, JSON.stringify(entry), true);
-      if(!result){
-        throw new Error('Falha ao salvar');
-      }
+      await studentsCol.doc(key).set(entry);
       studentForm.style.display = 'none';
       successPanel.style.display = '';
     }catch(err){
@@ -744,19 +757,13 @@
     tableEl.style.display = 'none';
 
     try{
-      const listResult = await window.storage.list('student:', true);
-      const keys = (listResult && listResult.keys) ? listResult.keys : [];
+      const snapshot = await studentsCol.get();
       const students = [];
-      for(const k of keys){
-        try{
-          const r = await window.storage.get(k, true);
-          if(r && r.value){
-            const parsed = JSON.parse(r.value);
-            parsed._key = k;
-            students.push(parsed);
-          }
-        }catch(e){ /* skip unreadable entry */ }
-      }
+      snapshot.forEach(doc=>{
+        const parsed = doc.data();
+        parsed._key = doc.id;
+        students.push(parsed);
+      });
       students.sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
       allStudents = students;
       renderRoster();
@@ -821,7 +828,7 @@
       btn.addEventListener('click', async ()=>{
         if(!confirm('Remover este cadastro?')) return;
         try{
-          await window.storage.delete(btn.dataset.key, true);
+          await studentsCol.doc(btn.dataset.key).delete();
           allStudents = allStudents.filter(s=>s._key !== btn.dataset.key);
           renderRoster();
         }catch(e){
@@ -867,7 +874,7 @@
   async function recordBackupTimestamp(){
     const now = new Date().toISOString();
     try{
-      await window.storage.set('backup-log:last', now, true);
+      await metaCol.doc('backup-log').set({ last: now });
     }catch(e){ /* non-critical */ }
     const hintEl = document.getElementById('backupHint');
     const dt = new Date(now);
@@ -1084,9 +1091,9 @@
 
   (async function loadLastBackupTime(){
     try{
-      const r = await window.storage.get('backup-log:last', true);
-      if(r && r.value){
-        const dt = new Date(r.value);
+      const doc = await metaCol.doc('backup-log').get();
+      if(doc.exists && doc.data().last){
+        const dt = new Date(doc.data().last);
         document.getElementById('backupHint').textContent = 'Último backup: ' + dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
       }
     }catch(e){ /* no backup yet */ }
