@@ -449,9 +449,9 @@
     font-size:14px;
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js" defer></script>
 </head>
 <body>
 
@@ -604,7 +604,7 @@
 
 </main>
 
-<script>
+<script defer>
 (function(){
   // ---------- FIREBASE ----------
   const firebaseConfig = {
@@ -615,10 +615,16 @@
     messagingSenderId: "617785755234",
     appId: "1:617785755234:web:8ec71ba3db79c0db55733b"
   };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const studentsCol = db.collection('students');
-  const metaCol = db.collection('meta');
+  let db, studentsCol, metaCol, firebaseReady = false;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    studentsCol = db.collection('students');
+    metaCol = db.collection('meta');
+    firebaseReady = true;
+  }catch(err){
+    console.error('Firebase falhou ao carregar:', err);
+  }
 
   const navStudent = document.getElementById('navStudent');
   const navAdmin = document.getElementById('navAdmin');
@@ -684,6 +690,10 @@
     e.preventDefault();
     if(!restrictionValue){
       alert('Por favor, informe se você possui alguma restrição médica ou física.');
+      return;
+    }
+    if(!firebaseReady){
+      alert('Não foi possível conectar ao servidor agora. Verifique sua internet e tente novamente em instantes.');
       return;
     }
     submitBtn.disabled = true;
