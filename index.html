@@ -449,6 +449,7 @@
     font-size:14px;
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 
@@ -570,6 +571,7 @@
       <input type="text" id="searchInput" placeholder="Buscar por nome ou curso...">
       <button class="filter-chip active" data-filter="all">Todos</button>
       <button class="filter-chip" data-filter="restriction">Com restrição</button>
+      <button class="filter-chip" id="exportXlsxBtn" style="border-color:var(--fmu-red);color:var(--fmu-red-dark);font-weight:800;">🎨 Planilha Criativa</button>
       <button class="filter-chip" id="exportCsvBtn">⭳ Exportar CSV</button>
       <button class="filter-chip" id="exportJsonBtn">⭳ Backup JSON</button>
     </div>
@@ -870,6 +872,192 @@
     const hintEl = document.getElementById('backupHint');
     const dt = new Date(now);
     hintEl.textContent = 'Último backup: ' + dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  document.getElementById('exportXlsxBtn').addEventListener('click', async ()=>{
+    if(allStudents.length === 0){ alert('Não há dados para exportar ainda.'); return; }
+    const btn = document.getElementById('exportXlsxBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Gerando...';
+    btn.disabled = true;
+    try{
+      await buildCreativeWorkbook(allStudents);
+      recordBackupTimestamp();
+    }catch(err){
+      console.error(err);
+      alert('Não foi possível gerar a planilha agora.');
+    }finally{
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  });
+
+  async function buildCreativeWorkbook(students){
+    const FMU_RED = 'FFE30613';
+    const FMU_RED_DARK = 'FFA8040D';
+    const INK = 'FF191414';
+    const TINT = 'FFFFEDEC';
+    const OK_TINT = 'FFE7F5EC';
+    const OK_TXT = 'FF2D7A4B';
+    const WARN_TINT = 'FFFDF0E4';
+    const WARN_TXT = 'FFB8560F';
+    const WHITE = 'FFFFFFFF';
+    const GRAY = 'FF5C5652';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'FMU Centro Universitário';
+    wb.created = new Date();
+
+    // ============ ABA 1: CAPA / RESUMO ============
+    const cover = wb.addWorksheet('Resumo', { views:[{ showGridLines:false }] });
+    cover.columns = [{width:4},{width:26},{width:26},{width:26},{width:4}];
+
+    cover.mergeCells('B2:D2');
+    const bannerTop = cover.getCell('B2');
+    bannerTop.value = 'FMU';
+    bannerTop.font = { name:'Arial Black', size:36, bold:true, color:{argb:WHITE} };
+    bannerTop.alignment = { vertical:'middle', horizontal:'center' };
+    cover.getRow(2).height = 55;
+    ['B2','C2','D2'].forEach(a=>cover.getCell(a).fill = { type:'pattern', pattern:'solid', fgColor:{argb:FMU_RED} });
+
+    cover.mergeCells('B3:D3');
+    const bannerSub = cover.getCell('B3');
+    bannerSub.value = 'CENTRO UNIVERSITÁRIO · Cadastro de Calouros';
+    bannerSub.font = { name:'Arial', size:11, bold:true, color:{argb:WHITE} };
+    bannerSub.alignment = { vertical:'middle', horizontal:'center' };
+    cover.getRow(3).height = 24;
+    ['B3','C3','D3'].forEach(a=>cover.getCell(a).fill = { type:'pattern', pattern:'solid', fgColor:{argb:FMU_RED_DARK} });
+
+    cover.mergeCells('B5:D5');
+    cover.getCell('B5').value = 'Gerado em ' + new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    cover.getCell('B5').font = { name:'Arial', size:10, italic:true, color:{argb:GRAY} };
+    cover.getCell('B5').alignment = { horizontal:'center' };
+
+    const total = students.length;
+    const withRestriction = students.filter(s=>s.hasRestriction).length;
+    const ages = students.map(s=>parseInt(s.age)).filter(n=>!isNaN(n));
+    const avgAge = ages.length ? (ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1) : '–';
+
+    const stats = [
+      { label:'TOTAL DE INSCRITOS', value:String(total), col:'B' },
+      { label:'COM RESTRIÇÃO', value:String(withRestriction), col:'C' },
+      { label:'IDADE MÉDIA', value:String(avgAge), col:'D' },
+    ];
+    stats.forEach(s=>{
+      const numCell = cover.getCell(s.col+'7');
+      numCell.value = s.value;
+      numCell.font = { name:'Arial Black', size:26, bold:true, color:{argb:FMU_RED} };
+      numCell.alignment = { horizontal:'center', vertical:'middle' };
+      const lblCell = cover.getCell(s.col+'8');
+      lblCell.value = s.label;
+      lblCell.font = { name:'Arial', size:9, bold:true, color:{argb:GRAY} };
+      lblCell.alignment = { horizontal:'center' };
+      [s.col+'6', s.col+'7', s.col+'8', s.col+'9'].forEach(addr=>{
+        cover.getCell(addr).fill = { type:'pattern', pattern:'solid', fgColor:{argb:TINT} };
+      });
+      cover.getCell(s.col+'6').border = { top:{style:'medium',color:{argb:FMU_RED}}, left:{style:'thin',color:{argb:FMU_RED}}, right:{style:'thin',color:{argb:FMU_RED}} };
+      cover.getCell(s.col+'9').border = { bottom:{style:'medium',color:{argb:FMU_RED}}, left:{style:'thin',color:{argb:FMU_RED}}, right:{style:'thin',color:{argb:FMU_RED}} };
+      cover.getCell(s.col+'7').border = { left:{style:'thin',color:{argb:FMU_RED}}, right:{style:'thin',color:{argb:FMU_RED}} };
+      cover.getCell(s.col+'8').border = { left:{style:'thin',color:{argb:FMU_RED}}, right:{style:'thin',color:{argb:FMU_RED}} };
+    });
+    cover.getRow(6).height = 6;
+    cover.getRow(7).height = 40;
+    cover.getRow(8).height = 20;
+    cover.getRow(9).height = 6;
+
+    // distribuição por curso
+    const byCourse = {};
+    students.forEach(s=>{ const c = s.course || 'Não informado'; byCourse[c] = (byCourse[c]||0)+1; });
+    const courseEntries = Object.entries(byCourse).sort((a,b)=>b[1]-a[1]);
+
+    cover.mergeCells('B11:D11');
+    cover.getCell('B11').value = 'Alunos por curso';
+    cover.getCell('B11').font = { name:'Arial', size:12, bold:true, color:{argb:INK} };
+    let rowIdx = 12;
+    courseEntries.forEach(([course, count])=>{
+      cover.mergeCells(`B${rowIdx}:C${rowIdx}`);
+      cover.getCell(`B${rowIdx}`).value = course;
+      cover.getCell(`B${rowIdx}`).font = { name:'Arial', size:10, color:{argb:INK} };
+      cover.getCell(`D${rowIdx}`).value = count;
+      cover.getCell(`D${rowIdx}`).font = { name:'Arial', size:10, bold:true, color:{argb:FMU_RED} };
+      cover.getCell(`D${rowIdx}`).alignment = { horizontal:'center' };
+      if(rowIdx % 2 === 0){
+        ['B','C','D'].forEach(c=>cover.getCell(c+rowIdx).fill = { type:'pattern', pattern:'solid', fgColor:{argb:TINT} });
+      }
+      rowIdx++;
+    });
+
+    // ============ ABA 2: LISTA DE ALUNOS ============
+    const sheet = wb.addWorksheet('Alunos', { views:[{ state:'frozen', ySplit:4, showGridLines:false }] });
+    sheet.columns = [
+      { width:3 }, { width:26 }, { width:9 }, { width:24 }, { width:16 }, { width:14 }, { width:34 }, { width:18 }
+    ];
+
+    sheet.mergeCells('B2:H2');
+    const titleCell = sheet.getCell('B2');
+    titleCell.value = 'FMU · Lista de Calouros Cadastrados';
+    titleCell.font = { name:'Arial Black', size:16, bold:true, color:{argb:WHITE} };
+    titleCell.alignment = { vertical:'middle', horizontal:'left', indent:1 };
+    sheet.getRow(2).height = 34;
+    for(let c=2;c<=8;c++) sheet.getCell(2, c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:FMU_RED} };
+
+    const headers = ['Nome','Idade','Curso','Semestre','Restrição','Detalhes da restrição','Data de cadastro'];
+    const headerRow = sheet.getRow(4);
+    headers.forEach((h, i)=>{
+      const cell = headerRow.getCell(i+2);
+      cell.value = h;
+      cell.font = { name:'Arial', size:10.5, bold:true, color:{argb:WHITE} };
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:FMU_RED_DARK} };
+      cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+      cell.border = { bottom:{style:'medium',color:{argb:INK}} };
+    });
+    headerRow.height = 26;
+
+    const sorted = [...students].sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+    sorted.forEach((s, idx)=>{
+      const r = sheet.getRow(5 + idx);
+      const dt = s.createdAt ? new Date(s.createdAt) : null;
+      const values = [
+        s.name || '—',
+        s.age ? parseInt(s.age) : '—',
+        s.course || '—',
+        s.semester || '—',
+        s.hasRestriction ? 'Sim' : 'Não',
+        s.restrictionDetail || '—',
+        dt ? dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'
+      ];
+      values.forEach((v,i)=>{
+        const cell = r.getCell(i+2);
+        cell.value = v;
+        cell.font = { name:'Arial', size:10, color:{argb:INK} };
+        cell.alignment = { vertical:'middle', horizontal: i===1 ? 'center' : (i===4 ? 'center':'left'), wrapText: i===5 };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb: idx % 2 === 0 ? WHITE : TINT} };
+        cell.border = { bottom:{style:'thin',color:{argb:'FFEAE2DF'}} };
+      });
+      const restrictionCell = r.getCell(6);
+      if(s.hasRestriction){
+        restrictionCell.font = { name:'Arial', size:10, bold:true, color:{argb:WARN_TXT} };
+        restrictionCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:WARN_TINT} };
+        restrictionCell.value = '⚠ Sim';
+      } else {
+        restrictionCell.font = { name:'Arial', size:10, bold:true, color:{argb:OK_TXT} };
+        restrictionCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:OK_TINT} };
+      }
+      r.height = 20;
+    });
+
+    sheet.autoFilter = { from: { row:4, column:2 }, to: { row:4, column:8 } };
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fmu-calouros-${timestampForFile()}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
